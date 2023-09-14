@@ -51,11 +51,16 @@ while (startup_duration < timeout_s):
 	try:
 		startup_duration = time.time() - start_time
 		conn = pg2.connect(
-			database = os.environ.get('POSTGRES_DB'),
-			user = os.environ.get('POSTGRES_USER'),
-			password = os.environ.get('POSTGRES_PASSWORD'),
-			host = os.environ.get('POSTGRES_HOST'),
-			port = os.environ.get('POSTGRES_PORT')
+			# database = os.environ.get('POSTGRES_DB'),
+			# user = os.environ.get('POSTGRES_USER'),
+			# password = os.environ.get('POSTGRES_PASSWORD'),
+			# host = os.environ.get('POSTGRES_HOST'),
+			# port = os.environ.get('POSTGRES_PORT')
+			database = "carpool",
+			user = "arsalan",
+			password = "123",
+			host = "localhost",
+			# port = ""
 		)
 		break
 	except Exception as e:
@@ -108,18 +113,23 @@ def register():
 
 		try:
 			if len(aadhar)==0 and len(driving)==0:
+				print("======1111====")
 				# Add User into Database
 				cur.execute("INSERT INTO users(fname, lname, contactNo, alternateContactNo, email, password, addLine1, addLine2, colony, city, state, gender, userStatus) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (fname, lname, contactNo, alternateContactNo, emailID, password, addLine1, addLine2, colony, city, state, gender, "NONE"))
 			elif len(aadhar)!=0 and len(driving)==0:
+				print("======222=====")
 				# Add User into Database
 				cur.execute("INSERT INTO users(fname, lname, contactNo, alternateContactNo, email, password, addLine1, addLine2, colony, city, state, aadhar, gender, userStatus) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (fname, lname, contactNo, alternateContactNo, emailID, password, addLine1, addLine2, colony, city, state, aadhar, gender, "AADHAR"))
 			elif len(aadhar)==0 and len(driving)!=0:
+				print("======333=====")
 				# Add User into Database
 				cur.execute("INSERT INTO users(fname, lname, contactNo, alternateContactNo, email, password, addLine1, addLine2, colony, city, state, gender, driving, userStatus) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (fname, lname, contactNo, alternateContactNo, emailID, password, addLine1, addLine2, colony, city, state, gender, driving,"DRIVING"))
 			elif len(aadhar)!=0 and len(driving)!=0:
+				print("-----444---")
 				# Add User into Database
 				cur.execute("INSERT INTO users(fname, lname, contactNo, alternateContactNo, email, password, addLine1, addLine2, colony, city, state, aadhar, gender, driving, userStatus) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (fname, lname, contactNo, alternateContactNo, emailID, password, addLine1, addLine2, colony, city, state, aadhar, gender, driving,"BOTH"))
-		except:
+		except Exception as e:
+			flash(e)
 			conn.rollback()
 			flash('Something went wrong','danger')
 			return redirect(url_for('login'))
