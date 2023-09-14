@@ -7,6 +7,8 @@ from flask import url_for
 from flask import session
 from flask import logging
 from passlib.hash import sha256_crypt
+import mysql.connector
+from mysql.connector import Error
 
 import psycopg2 as pg2
 
@@ -26,20 +28,8 @@ from database_credentials import credentials
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "747b60ab7ef6e02cf56da6503adae95198fa6dad"
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://arsalan:123@localhost/carpool'
 
-# conn = pg2.connect(
-# 	database = credentials['database'],
-# 	user = credentials['user'],
-# 	password = credentials['password'],
-# 	host = credentials['host'],
-# 	port = credentials['port']
-# )
-
-print(f'\n\n\nTrying to connect to {os.environ.get("POSTGRES_HOST")}', file=sys.stderr)
-print(f'User: {os.environ.get("POSTGRES_USER")}', file=sys.stderr)
-print(f'Password: {os.environ.get("POSTGRES_PASSWORD")}', file=sys.stderr)
-print(f'Port: {os.environ.get("POSTGRES_PORT")}', file=sys.stderr)
-print('')
 
 startup_duration = 0
 timeout_s = 30
@@ -50,18 +40,13 @@ conn = None
 while (startup_duration < timeout_s):
 	try:
 		startup_duration = time.time() - start_time
-		conn = pg2.connect(
-			# database = os.environ.get('POSTGRES_DB'),
-			# user = os.environ.get('POSTGRES_USER'),
-			# password = os.environ.get('POSTGRES_PASSWORD'),
-			# host = os.environ.get('POSTGRES_HOST'),
-			# port = os.environ.get('POSTGRES_PORT')
-			database = "carpool",
-			user = "arsalan",
-			password = "123",
-			host = "localhost",
-			# port = ""
-		)
+		conn = mysql.connector.connect(
+            user="arsalan",
+            password="123",
+            host="localhost",
+            database="carpool"
+            # port="3306"  # Specify the port if needed
+        )
 		break
 	except Exception as e:
 		print(f'Elapsed: {int(startup_duration)} / {timeout_s} seconds')
@@ -71,7 +56,7 @@ if conn is None:
 	print(f'Could not connect to the database within {timeout_s} seconds - {last_exception}')
 	exit()
 
-connection_status = ('Not connected', 'Connected')[conn.closed == 0]
+connection_status = ('Not connected', 'Connected')[conn.close == 0]
 print(f'Connection status: {connection_status}\n\n', file=sys.stderr, flush=True)
 
 # Index
@@ -620,5 +605,5 @@ def settings():
 
 if __name__ == '__main__':
 	app.secret_key = 'secret123'
-	port = int(os.environ.get("PORT",7070))
+	port = int(os.environ.get("PORT",8000))
 	app.run(host='0.0.0.0', port=port, debug=True)
