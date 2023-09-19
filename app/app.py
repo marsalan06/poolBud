@@ -24,40 +24,51 @@ from decorators import has_driving
 from forms import RegisterForm
 
 # Importing database credentials
+from flask_sqlalchemy import SQLAlchemy
 from database_credentials import credentials
 
+import db_models
+
+# app.config['SECRET_KEY'] = "747b60ab7ef6e02cf56da6503adae95198fa6dad"
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://arsalan:123@localhost/carpool'
+
 app = Flask(__name__)
+
 app.config['SECRET_KEY'] = "747b60ab7ef6e02cf56da6503adae95198fa6dad"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://arsalan:123@localhost/carpool'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://arsalan:123@localhost/carpool'
+app.config["SQLALCHEMY_ECHO"] = True
+app.config["SQLALCHEMY_RECORD_QUERIES"] = True
+
+db_models.db.init_app(app)
+
 
 
 startup_duration = 0
-timeout_s = 30
+timeout_s = 10
 start_time = time.time()
 last_exception = None
 conn = None
 
-while (startup_duration < timeout_s):
-	try:
-		startup_duration = time.time() - start_time
-		conn = mysql.connector.connect(
-            user="arsalan",
-            password="123",
-            host="localhost",
-            database="carpool"
-            # port="3306"  # Specify the port if needed
-        )
-		break
-	except Exception as e:
-		print(f'Elapsed: {int(startup_duration)} / {timeout_s} seconds')
-		last_exception = e
-		time.sleep(1)
-if conn is None:
-	print(f'Could not connect to the database within {timeout_s} seconds - {last_exception}')
-	exit()
+# while startup_duration < timeout_s:
+#     try:
+#         startup_duration = time.time() - start_time
+#         # Initialize the SQLAlchemy extension
+#         db = SQLAlchemy(app)
 
-connection_status = ('Not connected', 'Connected')[conn.close == 0]
-print(f'Connection status: {connection_status}\n\n', file=sys.stderr, flush=True)
+#         break
+#     except Exception as e:
+#         print(f'Elapsed: {int(startup_duration)} / {timeout_s} seconds')
+#         last_exception = e
+#         time.sleep(1)
+
+# if startup_duration >= timeout_s:
+#     print(f'Could not initialize the database within {timeout_s} seconds - {last_exception}')
+#     exit()
+
+# connection_status = ('Not connected', 'Connected')[conn.close == 0]
+# print(f'Connection status: {connection_status}\n\n', file=sys.stderr, flush=True)
+
+
 
 # Index
 @app.route('/')
@@ -94,36 +105,94 @@ def register():
 		state = form.state.data
 
 		# Create cursor
-		cur = conn.cursor()
+		# cur = conn.cursor()
 
 		try:
 			if len(aadhar)==0 and len(driving)==0:
 				print("======1111====")
 				# Add User into Database
-				cur.execute("INSERT INTO users(fname, lname, contactNo, alternateContactNo, email, password, addLine1, addLine2, colony, city, state, gender, userStatus) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (fname, lname, contactNo, alternateContactNo, emailID, password, addLine1, addLine2, colony, city, state, gender, "NONE"))
+				new_user = db_models.User(
+					fname=fname,
+					lname=lname,
+					contactNo=contactNo,
+					alternateContactNo=alternateContactNo,
+					email=emailID,
+					password=password,
+					addLine1=addLine1,
+					addLine2=addLine2,
+					colony=colony,
+					city=city,
+					state=state,
+					gender=gender,
+					userStatus="NONE"
+        		)
 			elif len(aadhar)!=0 and len(driving)==0:
 				print("======222=====")
 				# Add User into Database
-				cur.execute("INSERT INTO users(fname, lname, contactNo, alternateContactNo, email, password, addLine1, addLine2, colony, city, state, aadhar, gender, userStatus) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (fname, lname, contactNo, alternateContactNo, emailID, password, addLine1, addLine2, colony, city, state, aadhar, gender, "AADHAR"))
+				new_user = db_models.User(
+					fname=fname,
+					lname=lname,
+					contactNo=contactNo,
+					alternateContactNo=alternateContactNo,
+					email=emailID,
+					password=password,
+					addLine1=addLine1,
+					addLine2=addLine2,
+					colony=colony,
+					city=city,
+					state=state,
+					aadhar=aadhar,
+					gender=gender,
+					userStatus="AADHAR"
+				)
 			elif len(aadhar)==0 and len(driving)!=0:
 				print("======333=====")
 				# Add User into Database
-				cur.execute("INSERT INTO users(fname, lname, contactNo, alternateContactNo, email, password, addLine1, addLine2, colony, city, state, gender, driving, userStatus) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (fname, lname, contactNo, alternateContactNo, emailID, password, addLine1, addLine2, colony, city, state, gender, driving,"DRIVING"))
+				new_user = db_models.User(
+					fname=fname,
+					lname=lname,
+					contactNo=contactNo,
+					alternateContactNo=alternateContactNo,
+					email=emailID,
+					password=password,
+					addLine1=addLine1,
+					addLine2=addLine2,
+					colony=colony,
+					city=city,
+					state=state,
+					gender=gender,
+					driving=driving,
+					userStatus="DRIVING"
+				)
 			elif len(aadhar)!=0 and len(driving)!=0:
 				print("-----444---")
 				# Add User into Database
-				cur.execute("INSERT INTO users(fname, lname, contactNo, alternateContactNo, email, password, addLine1, addLine2, colony, city, state, aadhar, gender, driving, userStatus) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (fname, lname, contactNo, alternateContactNo, emailID, password, addLine1, addLine2, colony, city, state, aadhar, gender, driving,"BOTH"))
+				print(fname, lname, contactNo, alternateContactNo, emailID, password, addLine1, addLine2, colony, city, state, aadhar, gender, driving,"BOTH")
+				new_user = db_models.User(
+					fname=fname,
+					lname=lname,
+					contactNo=contactNo,
+					alternateContactNo=alternateContactNo,
+					email=emailID,
+					password=password,
+					addLine1=addLine1,
+					addLine2=addLine2,
+					colony=colony,
+					city=city,
+					state=state,
+					aadhar=aadhar,
+					gender=gender,
+					driving=driving,
+					userStatus="BOTH"
+				)
+			db_models.db.session.add(new_user)
+			db_models.db.session.commit()
+
 		except Exception as e:
 			flash(e)
-			conn.rollback()
+			db_models.db.session.rollback()
 			flash('Something went wrong','danger')
 			return redirect(url_for('login'))
-
-		# Comit to DB
-		conn.commit()
-
-		# Close connection
-		cur.close()
 
 		flash('You are now Registered and can Log In','success')
 		return redirect(url_for('login'))
@@ -140,31 +209,36 @@ def login():
 		password_candidate = request.form['password']
 
 		# Create cursor
-		cur = conn.cursor()
+		# cur = conn.cursor()
 
 		try:
+			print("======in try case------")
 			# Get user by either Email or ContactNo
 			if '@' in username:
-				cur.execute("SELECT userId, password, userStatus, userType, fname, lname, city FROM users WHERE email = %s",[username])
+				user = db_models.User.query.filter_by(email=username).first()
+				print("======if case-----", user)
 			else:
-				cur.execute("SELECT userId, password, userStatus, userType, fname, lname, city FROM users WHERE contactNo = %s",[username])
-		except:
-			conn.rollback()
+				user = db_models.User.query.filter_by(contactNo=username).first()
+				print("======else case-----", user)
+
+
+		except Exception as e:
+			print("=====exception====")
+			print(e)
+			db_models.db.session.rollback()
 			flash('Something went wrong','danger')
 			return redirect(url_for('login'))
 
-		result = cur.fetchone()
-
-		if result:
+		if user:
 			# Compate Passwords
-			if sha256_crypt.verify(password_candidate, result[1]):
+			if sha256_crypt.verify(password_candidate, user.password):
 				session['logged_in'] = True
-				session['userId'] = result[0]
-				session['userStatus'] = result[2]
-				session['userType'] = result[3]
-				session['city'] = result[6]
+				session['userId'] = user.userId
+				session['userStatus'] = user.userStatus
+				session['userType'] = user.userType
+				session['city'] = user.city
 				
-				msg = "Welcome {} {}".format(result[4],result[5])
+				msg = "Welcome {} {}".format(user.fname,user.lname)
 				flash(msg,'success')
 
 				return redirect(url_for('dashboard'))
@@ -178,11 +252,13 @@ def login():
 	return render_template('login.html')
 
 # Logout
-@app.route('/logout')
+@app.route('/loggout')
 @is_logged_in
 def logout():
+	print('======inside here----')
 	session.clear()
 	flash('You are now Logged Out','success')
+	print("======am i here----")
 	return redirect(url_for('login'))
 
 # Dashboard
@@ -208,21 +284,26 @@ def nearbyRides():
 		RideId = request.form['rideId']
 
 		# Create cursor
-		cur = conn.cursor()
+		# cur = conn.cursor()
 
 		try:
 			# Add User into Database
-			cur.execute("INSERT INTO ShareRequest(RideID, requestUserId) VALUES (%s, %s);", (RideId, session['userId']))
-		except:
-			conn.rollback()
+			# cur.execute("INSERT INTO ShareRequest(RideID, requestUserId) VALUES (%s, %s);", (RideId, session['userId']))
+			new_share_request = db_models.ShareRequest(RideID=RideId, requestUserId=session['userId'])
+			db_models.db.session.add(new_share_request)
+			db_models.db.session.commit()
+
+		except Exception as e:
+			print(e)
+			db_models.db.session.rollback()
 			flash('Something went wrong','danger')
 			return redirect(url_for('dashboard'))
 
-		# Comit to DB
-		conn.commit()
+		# # Comit to DB
+		# conn.commit()
 
-		# Close connection
-		cur.close()
+		# # Close connection
+		# cur.close()
 
 		
 		flash('Your Request for Ride is sent to the user!','success')
@@ -234,26 +315,55 @@ def nearbyRides():
 		return redirect(url_for('dashboard'))
 
 	# Create cursor
-	cur = conn.cursor()
+	# cur = conn.cursor()
 	print(session['userId'], file=sys.stderr)
 	ui=session['userId']
+	print("=====ui====",ui)
 	try:
+		print("=====i am here----")
 		# Add User into Database
 		# query_original = "SELECT * FROM Ride r, users u WHERE r.rideDate = DATE(NOW()) AND r.city = %s AND r.rideStatus = %s AND r.creatorUserId = u.userId",(session['city'],"PENDING")
 		#query = "select * from (SELECT ridetime, fromlocation, tolocation, r.city, r.state, fname, lname, gender, seats, contactno, rideid, r.creatoruserid, u.userid  FROM users u, ride r where u.userid=r.creatoruserid and r.ridestatus='PENDING') as A where A.userid not in (%s);"(ui)
-		cur.execute("select * from (SELECT ridetime, fromlocation, tolocation, r.city, r.state, fname, lname, gender, seats, contactno, rideid, r.creatoruserid, u.userid, r.carstatus, r.message, ridedate  FROM users u, ride r where u.userid=r.creatoruserid and r.ridestatus='PENDING') as A where A.userid != %s",[ui])
-	except:
-		conn.rollback()
+		# cur.execute("select * from (SELECT ridetime, fromlocation, tolocation, r.city, r.state, fname, lname, gender, seats, contactno, rideid, r.creatoruserid, u.userid, r.carstatus, r.message, ridedate  FROM users u, ride r where u.userid=r.creatoruserid and r.ridestatus='PENDING') as A where A.userid != %s",[ui])
+		rides = (
+        db_models.db.session.query(
+            db_models.Ride.rideTime,
+            db_models.Ride.fromLocation,
+            db_models.Ride.toLocation,
+            db_models.Ride.city,
+            db_models.Ride.state,
+            db_models.User.fname,
+            db_models.User.lname,
+            db_models.User.gender,
+            db_models.Ride.seats,
+            db_models.User.contactNo,
+            db_models.Ride.RideId,
+            db_models.Ride.creatorUserId,
+            db_models.User.userId,
+            db_models.Ride.carStatus,
+            db_models.Ride.message,
+            db_models.Ride.rideDate
+        )
+        .join(db_models.User, db_models.User.userId == db_models.Ride.creatorUserId)
+        .filter(db_models.Ride.rideStatus == 'PENDING', db_models.User.userId != ui)
+        .all()
+    	)
+	except Exception as e:
+		print(e)
+		db_models.db.session.rollback()  # Rollback the transaction in case of an error
+		# conn.rollback()
 		flash('Something went wrong','danger')
 		return redirect(url_for('dashboard'))
 	
-	rides = cur.fetchall()
+	# rides = cur.fetchall()
 
-	# Comit to DB
-	conn.commit()
+	# # Comit to DB
+	# conn.commit()
 
-	# Close connection
-	cur.close()
+	# # Close connection
+	# cur.close()
+
+	print("=======testing =====", rides)
 
 	if rides:
 		return render_template('nearbyRides.html', rides = rides)
