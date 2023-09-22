@@ -268,8 +268,6 @@ def dashboard():
 	return render_template('dashboard.html')
 
 
-
-
 # this part of code was buggy so some parts are removed
 
 @app.route('/nearbyRides', methods=['GET','POST'])
@@ -277,11 +275,13 @@ def dashboard():
 @has_aadhar
 def nearbyRides():
 	if request.method == 'POST':
+		print("======post method near by ride====")
 		if session['userStatus']=='REGISTERED' or session['userStatus'] == 'DRIVING' or session['userStatus'] == 'NONE':
 			flash('You Don\'t have PID!','warning')
 			return redirect(url_for('dashboard'))
 		
 		RideId = request.form['rideId']
+		print(RideId,"=====ride id===")
 
 		# Create cursor
 		# cur = conn.cursor()
@@ -290,6 +290,7 @@ def nearbyRides():
 			# Add User into Database
 			# cur.execute("INSERT INTO ShareRequest(RideID, requestUserId) VALUES (%s, %s);", (RideId, session['userId']))
 			new_share_request = db_models.ShareRequest(RideID=RideId, requestUserId=session['userId'])
+			print(new_share_request,"====new share req====")
 			db_models.db.session.add(new_share_request)
 			db_models.db.session.commit()
 
@@ -366,6 +367,7 @@ def nearbyRides():
 	print("=======testing =====", rides)
 
 	if rides:
+		print("======if rides exists====")
 		return render_template('nearbyRides.html', rides = rides)
 	else:
 		flash('No Rides in your city!','warning')
@@ -383,21 +385,25 @@ def womennearbyRides():
 		RideId = request.form['rideId']
 
 		# Create cursor
-		cur = conn.cursor()
+		# cur = conn.cursor()
 
 		try:
 			# Add User into Database
-			cur.execute("INSERT INTO ShareRequest(RideID, requestUserId) VALUES (%s, %s);", (RideId, session['userId']))
+			# cur.execute("INSERT INTO ShareRequest(RideID, requestUserId) VALUES (%s, %s);", (RideId, session['userId']))
+			new_share_request = db_models.ShareRequest(RideID=RideId, requestUserId=session['userId'])
+			db_models.db.session.add(new_share_request)
+			db_models.db.session.commit()
 		except:
-			conn.rollback()
+			db_models.db.session.rollback()
 			flash('Something went wrong','danger')
 			return redirect(url_for('dashboard'))
 
-		# Comit to DB
-		conn.commit()
+		
+		# # Comit to DB
+		# conn.commit()
 
-		# Close connection
-		cur.close()
+		# # Close connection
+		# cur.close()
 
 		
 		flash('Your Request for Ride is sent to the user!','success')
@@ -409,25 +415,48 @@ def womennearbyRides():
 		return redirect(url_for('dashboard'))
 
 	# Create cursor
-	cur = conn.cursor()
+	# cur = conn.cursor()
 	ui = session['userId']
 	try:
+		print("======women ride 101-----")
 		# Add User into Database
 		# query_original = "SELECT * FROM Ride r, users u WHERE r.rideDate = DATE(NOW()) AND r.city = %s AND r.rideStatus = %s AND r.creatorUserId = u.userId",(session['city'],"PENDING")
 		#query = "SELECT * FROM Ride r, users u where u.gender = 'FEMALE' and r.creatoruserid != u.userid"
-		cur.execute("select * from (SELECT ridetime, fromlocation, tolocation, r.city, r.state, fname, lname, gender, seats, contactno, rideid, r.creatoruserid, u.userid, ridedate  FROM users u, ride r where gender = 'FEMALE' and u.userid=r.creatoruserid and r.ridestatus='PENDING') as A where A.userid != %s",[ui])
+		# cur.execute("select * from (SELECT ridetime, fromlocation, tolocation, r.city, r.state, fname, lname, gender, seats, contactno, rideid, r.creatoruserid, u.userid, ridedate  FROM users u, ride r where gender = 'FEMALE' and u.userid=r.creatoruserid and r.ridestatus='PENDING') as A where A.userid != %s",[ui])
+		rides = (
+        db_models.db.session.query(
+            db_models.Ride.rideTime,
+            db_models.Ride.fromLocation,
+            db_models.Ride.toLocation,
+            db_models.Ride.city,
+            db_models.Ride.state,
+            db_models.User.fname,
+            db_models.User.lname,
+            db_models.User.gender,
+            db_models.Ride.seats,
+            db_models.User.contactNo,
+            db_models.Ride.RideId,
+            db_models.Ride.creatorUserId,
+            db_models.User.userId,
+            db_models.Ride.rideDate
+        )
+        .join(db_models.User, db_models.User.userId == db_models.Ride.creatorUserId)
+        .filter(db_models.Ride.rideStatus == 'PENDING', db_models.User.gender == 'FEMALE', db_models.User.userId != ui)
+        .all()
+    	)
+		print("=====women rides===")
 	except:
-		conn.rollback()
+		db_models.db.session.rollback()		
 		flash('Something went wrong','danger')
 		return redirect(url_for('dashboard'))
 	
-	rides = cur.fetchall()
+	# rides = cur.fetchall()
 
-	# Comit to DB
-	conn.commit()
+	# # Comit to DB
+	# conn.commit()
 
-	# Close connection
-	cur.close()
+	# # Close connection
+	# cur.close()
 
 	if rides:
 		return render_template('womennearbyRides.html', rides = rides)
@@ -442,6 +471,7 @@ def womennearbyRides():
 @has_driving
 def rideRequests():
 	if request.method == 'POST':
+		print("=======is this working-=----=-==-")
 		if session['userStatus']=='REGISTERED' or session['userStatus'] == 'AADHAR' or session['userStatus'] == 'NONE':
 			flash('You Don\'t have Driving License!','warning')
 			return redirect(url_for('dashboard'))
@@ -449,33 +479,40 @@ def rideRequests():
 		rideId = request.form['rideId']
 		
 		# Create cursor
-		cur = conn.cursor()
+		# cur = conn.cursor()
 
 		
 		try:
 			# fetching no of seats
-			cur.execute("select seats from Ride where RideId = %s",[rideId])
-		except:
-			conn.rollback()
+			# cur.execute("select seats from Ride where RideId = %s",[rideId])
+			seats = db_models.db.session.query(db_models.Ride.seats).filter_by(RideId=rideId).scalar()
+			print("=====seats===", seats)
+		except Exception as e:
+			print(e,"=====exceptin one===")
+			db_models.db.session.rollback()
 			flash('Something went wrong','danger')
 			return redirect(url_for('dashboard'))
 
-		s = cur.fetchone()
-		seats = s[0]
-		cur.close()
+		# s = cur.fetchone()
+		# seats = s[0]
+		# cur.close()
 
-		cur = conn.cursor()
+		# cur = conn.cursor()
        
 		
 		try:
+			print("======try case 2====")
 			# fetching the request creater ID
-			cur.execute("select requestuserid from sharerequest s,ride r where s.rideid=r.rideid")
+			# cur.execute("select requestuserid from sharerequest s,ride r where s.rideid=r.rideid")
+			requestUser = db_models.db.session.query(db_models.ShareRequest.requestUserId).join(db_models.Ride, db_models.ShareRequest.RideID == db_models.Ride.RideId).all()
+			print("===requestUser===", requestUser)
 		except:
-			conn.rollback()
+			print("======exception===",e)
+			db_models.db.session.rollback()
 			flash('Something went wrong','danger')
 			return redirect(url_for('dashboard'))
 
-		requestUser= cur.fetchall()
+		# requestUser= cur.fetchall()
 		requestUserIds=requestUser
 		
 
@@ -487,31 +524,48 @@ def rideRequests():
 		if seats - 1 > 0:
 			try:
 				# Update User Details into the Database
-				cur.execute("UPDATE Ride SET seats = %s",[seats-1])
+				db_models.db.session.query(db_models.Ride).filter_by(RideId=rideId).update({'seats': seats - 1})
+				db_models.db.session.commit()
+
+				# cur.execute("UPDATE Ride SET seats = %s",[seats-1])
 				for requestUserId in requestUserIds:
-					cur.execute("INSERT INTO passenger(rideid, creatoruserid, requestuserid) VALUES (%s,%s,%s);", (rideId, session['userId'] ,requestUserId))
-					cur.execute("delete from sharerequest s where s.requestUserId in (select s.requestUserId from sharerequest s,passenger p where s.requestUserId=p.requestUserId )")
-			except:
-				conn.rollback()
+					# cur.execute("INSERT INTO passenger(rideid, creatoruserid, requestuserid) VALUES (%s,%s,%s);", (rideId, session['userId'] ,requestUserId))
+					new_passenger = db_models.Passenger(RideID=rideId, creatorUserId=session['userId'], requestUserId=requestUserId[0])
+					db_models.db.session.add(new_passenger)
+					# cur.execute("delete from sharerequest s where s.requestUserId in (select s.requestUserId from sharerequest s,passenger p where s.requestUserId=p.requestUserId )")
+					db_models.db.session.query(db_models.ShareRequest).filter(db_models.ShareRequest.requestUserId == requestUserId[0]).delete()
+			except Exception as e:
+				print(e)
+				db_models.db.session.rollback()
 				flash('Something went wrong','danger')
 				return redirect(url_for('dashboard'))
 		else:
 			try:
 				# Update User Details into the Database
-				cur.execute("UPDATE Ride SET seats = %s,rideStatus = 'DONE'",[seats-1])
+				# cur.execute("UPDATE Ride SET seats = %s,rideStatus = 'DONE'",[seats-1])
+				db_models.db.session.query(db_models.Ride).filter_by(RideId=rideId).update({'seats': seats - 1, 'rideStatus': 'DONE'})
+
 				for requestUserId in requestUserIds:
-					cur.execute("INSERT INTO passenger(rideid, creatoruserid, requestuserid) VALUES (%s,%s,%s);", (rideId, session['userId'] ,requestUserId))
-					cur.execute("delete from sharerequest s where s.requestUserId in (select s.requestUserId from sharerequest s,passenger p where s.requestUserId=p.requestUserId )")
-			except:
-				conn.rollback()
+					# cur.execute("INSERT INTO passenger(rideid, creatoruserid, requestuserid) VALUES (%s,%s,%s);", (rideId, session['userId'] ,requestUserId))
+					new_passenger = db_models.Passenger(RideID=rideId, creatorUserId=session['userId'], requestUserId=requestUserId[0])
+					db_models.db.session.add(new_passenger)
+					print("======execution here=====")
+					# cur.execute("delete from sharerequest s where s.requestUserId in (select s.requestUserId from sharerequest s,passenger p where s.requestUserId=p.requestUserId )")
+					db_models.db.session.query(db_models.ShareRequest).filter(db_models.ShareRequest.requestUserId.in_(
+            			db_models.db.session.query(db_models.Passenger.requestUserId).filter(db_models.Passenger.RideID == rideId))).delete(synchronize_session=False)
+					db_models.db.session.commit()
+
+			except Exception as e:
+				print(e)
+				db_models.db.session.rollback()
 				flash('Something went wrong','danger')
 				return redirect(url_for('dashboard'))
 
-		# Comit to DB
-		conn.commit()
+		# # Comit to DB
+		# conn.commit()
 
-		# Close connection
-		cur.close()
+		# # Close connection
+		# cur.close()
 
 		flash('Request accepted for the ride','success')
 		return redirect(url_for('dashboard'))
@@ -521,23 +575,48 @@ def rideRequests():
 			return redirect(url_for('dashboard'))
 
 	# Create cursor
-	cur = conn.cursor()
+	# cur = conn.cursor()
 
 	try:
+		print("=====ride request====")
 		# Fetch all the ShareRequests and Details
-		cur.execute("SELECT ridetime, fromlocation, tolocation, r.city, r.state, fname, lname, gender, seats, contactno, r.rideid, r.creatoruserid, u.userid, ridedate  FROM ShareRequest s, Ride r, users u WHERE r.RideId = s.RideID AND r.rideStatus = 'PENDING' AND r.creatorUserId = %s AND s.requestUserId = u.userId",[session['userId']])
-	except:
-		conn.rollback()
+		results = (
+        	db_models.db.session.query(
+				db_models.Ride.rideTime,
+				db_models.Ride.fromLocation,
+				db_models.Ride.toLocation,
+				db_models.Ride.city,
+				db_models.Ride.state,
+				db_models.User.fname,
+				db_models.User.lname,
+				db_models.User.gender,
+				db_models.Ride.seats,
+				db_models.User.contactNo,
+				db_models.Ride.RideId,
+				db_models.Ride.creatorUserId,
+				db_models.User.userId,
+				db_models.Ride.rideDate,
+			)
+        	.join(db_models.ShareRequest, db_models.Ride.RideId == db_models.ShareRequest.RideID)
+        	.join(db_models.User, db_models.ShareRequest.requestUserId == db_models.User.userId)
+        	.filter(
+            	db_models.Ride.rideStatus == 'PENDING',
+            	db_models.Ride.creatorUserId == session['userId'])
+        	.all()
+    	)
+	except Exception as e:
+		print(e)
+		db_models.db.session.rollback()
 		flash('Something went wrong','danger')
 		return redirect(url_for('dashboard'))
 
-	rideRequests = cur.fetchall()
+	rideRequests = results
 
 	# Comit to DB
-	conn.commit()
+	db_models.db.session.commit()
 
 	# Close connection
-	cur.close()
+	# cur.close()
 
 	if rideRequests:
 		return render_template('rideRequests.html', rideRequests = rideRequests)
